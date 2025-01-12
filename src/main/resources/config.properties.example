@@ -4,4 +4,4 @@ tokenBot=
 chatId=
 messageId=
 userAgent=
-updateInterval=
+updateInterval=1800000
