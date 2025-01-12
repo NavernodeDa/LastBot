@@ -1,7 +1,7 @@
-apiKey=
-user=
-tokenBot=
-chatId=
-messageId=
-userAgent=
-updateInterval=1800000
+Data.apiKey=
+Data.user=
+Data.tokenBot=
+Data.chatId=-100
+Data.messageId=xL
+Data.userAgent=
+Data.updateInterval=1800000
