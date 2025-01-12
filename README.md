@@ -17,6 +17,8 @@ updateInterval=interval in minutes
 ```
 The ```chatId``` and  ```messageId``` fields are filled in together: the id of your chat/channel is inserted into chatId, and the id of the message from your chat/channel is inserted into messageId.
 
+### ❗️Before you run the bot, add it to your chat/channel and give it admin if you add it to the  channel ❗️
+
 ## TODO list
 - [ ] Change library to [last.fm-api](https://github.com/vpaliy/last.fm-api)
 - [ ] Make it possible to change text from config.properties
