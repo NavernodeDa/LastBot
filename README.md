@@ -19,7 +19,7 @@ The ```chatId``` and  ```messageId``` fields are filled in together: the id of y
 
 ## TODO list
 - [ ] Change library to [last.fm-api](https://github.com/vpaliy/last.fm-api)
-- [ ] Separate all functions into a separate file
+- [x] Separate all functions into a separate file
 
 ## Usage
 - ![](https://avatars.githubusercontent.com/u/57418018?s=24) [Kotlin-telegram-bot](https://github.com/kotlin-telegram-bot/kotlin-telegram-bot) for Telegram API.
