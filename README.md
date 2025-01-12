@@ -4,7 +4,7 @@
 Kotlin-based Telegram bot for tracking and updating information about user's music preferences based on Last.fm data. The bot periodically checks the user's top artists and sends updates to the specified Telegram channel or chat.
 
 ## How to use
-First, insert the required values into src/main/resources/config.properties:
+Insert the required values into src/main/resources/config.properties:
 
 ```properties
 apiKey=ap1K3y40r1astFm
@@ -13,7 +13,7 @@ tokenBot=1234567890:tokenForYourTelegramBot
 chatId=chatId for your chat/channel
 messageId=2L // id of the message that will be changed in chat/channel
 userAgent=user agent for Last.fm library
-updateInterval=1800000
+updateInterval=interval in minutes
 ```
 The ```chatId``` and  ```messageId``` fields are filled in together: the id of your chat/channel is inserted into chatId, and the id of the message from your chat/channel is inserted into messageId.
 

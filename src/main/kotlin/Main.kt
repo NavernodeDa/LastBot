@@ -18,7 +18,7 @@ fun main() {
     CoroutineScope(Dispatchers.Default).launch {
         while (true) {
             updateMessage()
-            delay(config[Data.updateInterval])
+            delay(config[Data.updateInterval] * 60 * 1000)
         }
     }
 

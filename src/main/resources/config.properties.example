@@ -4,4 +4,4 @@ Data.tokenBot=
 Data.chatId=-100
 Data.messageId=xL
 Data.userAgent=
-Data.updateInterval=1800000
+Data.updateInterval=30
