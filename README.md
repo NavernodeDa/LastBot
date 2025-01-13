@@ -22,6 +22,7 @@ The ```chatId``` and  ```messageId``` fields are filled in together: the id of y
 ## TODO list
 - [ ] Change library to [last.fm-api](https://github.com/vpaliy/last.fm-api)
 - [ ] Make it possible to change text from config.properties
+- [ ] Show recently played songs
 - [x] Separate all functions into a separate file
 
 ## Example
