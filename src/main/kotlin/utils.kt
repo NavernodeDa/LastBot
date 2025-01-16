@@ -84,17 +84,17 @@ fun updateMessage(userId: Long? = null) {
 private fun buildText(): String {
     val text =
         StringBuilder().append(
-            "$notes${deserialized.pastSongs}$notes\n" + """Тут должны быть песни - Но Spotify гандоны""" + "\n\n" +
+            "$notes${deserialized.pastSongs}$notes\nТут должны быть песни - Но Spotify гандоны\n\n" +
                 "$whiteHeart${deserialized.favoriteArtists}$blueHeart\n",
         )
 
     getFavoriteArtists().also { list ->
         if (list.isNotEmpty()) {
             list.dropLast(30).forEachIndexed { index, artist ->
-                text.append(
-                    """${index + 1}. <a href="${artist.url}">${artist.name}</a> - ${artist.playcount} ${deserialized.listens}""" +
-                        "\n",
-                )
+                text
+                    .append(
+                        """${index + 1}. <a href="${artist.url}">${artist.name}</a> - ${artist.playcount} ${deserialized.listens}""",
+                    ).append("\n")
             }
         } else {
             logger.warn("Result of getFavoriteArtists() is empty")
