@@ -9,8 +9,11 @@ import com.github.kotlintelegrambot.entities.ParseMode
 import com.natpryce.konfig.*
 import de.umass.lastfm.Artist
 import de.umass.lastfm.User
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.Json
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
+import java.io.File
 
 object Data : PropertyGroup() {
     val apiKey by stringType
@@ -22,9 +25,34 @@ object Data : PropertyGroup() {
     val updateInterval by longType
 }
 
+@Serializable
+private data class Strings(
+    val pastSongs: String,
+    val favoriteArtists: String,
+    val listens: String,
+    val thereIsNothingHere: String,
+)
+
+@Suppress("ktlint:standard:property-naming")
+const val notes = "\uD83C\uDFB6"
+
+@Suppress("ktlint:standard:property-naming")
+const val whiteHeart = "\uD83E\uDE76"
+
+@Suppress("ktlint:standard:property-naming")
+const val blueHeart = "\uD83E\uDE75"
+
+@Suppress("ktlint:standard:property-naming")
+const val think = "\uD83E\uDD14"
+
 val config = ConfigurationProperties.fromResource("config.properties")
 private val logger: Logger = LoggerFactory.getLogger("SpotifyBotLogger")
 val bot = createBot()
+
+private val deserialized: Strings =
+    Json.decodeFromString<Strings>(
+        File("./src/main/resources/strings.json").readText(),
+    )
 
 private fun createBot(): Bot =
     bot {
@@ -56,17 +84,21 @@ fun updateMessage(userId: Long? = null) {
 private fun buildText(): String {
     val text =
         StringBuilder().append(
-            "\uD83C\uDFB6Прошлые песни\uD83C\uDFB6\nТут должны быть песни - Но Spotify гандоны\n\n" +
-                "\uD83E\uDE76Любимые исполнители\uD83E\uDE75\n",
+            "$notes${deserialized.pastSongs}$notes\n" + """Тут должны быть песни - Но Spotify гандоны""" + "\n\n" +
+                "$whiteHeart${deserialized.favoriteArtists}$blueHeart\n",
         )
 
-    getFavoriteArtists().also { artist ->
-        if (artist.isNotEmpty()) {
-            artist.dropLast(30).forEachIndexed { index, name ->
-                text.append("""${index + 1}. <a href="${name.url}">${name.name}</a> - ${name.playcount} прослушиваний""" + "\n")
+    getFavoriteArtists().also { list ->
+        if (list.isNotEmpty()) {
+            list.dropLast(30).forEachIndexed { index, artist ->
+                text.append(
+                    """${index + 1}. <a href="${artist.url}">${artist.name}</a> - ${artist.playcount} ${deserialized.listens}""" +
+                        "\n",
+                )
             }
         } else {
-            text.append("Тут ничего нету \uD83E\uDD14")
+            logger.warn("Result of getFavoriteArtists() is empty")
+            text.append("${deserialized.thereIsNothingHere} $think")
         }
     }
 
