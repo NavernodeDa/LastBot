@@ -8,6 +8,7 @@ import com.github.kotlintelegrambot.entities.ChatId
 import com.github.kotlintelegrambot.entities.ParseMode
 import com.natpryce.konfig.*
 import de.umass.lastfm.Artist
+import de.umass.lastfm.Track
 import de.umass.lastfm.User
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
@@ -83,10 +84,23 @@ fun updateMessage(userId: Long? = null) {
 
 private fun buildText(): String {
     val text =
-        StringBuilder().append(
-            "$notes${deserialized.pastSongs}$notes\nТут должны быть песни - Но Spotify гандоны\n\n" +
-                "$whiteHeart${deserialized.favoriteArtists}$blueHeart\n",
-        )
+        StringBuilder().append("$notes${deserialized.pastSongs}$notes\n")
+
+    getRecentSongs().also { list ->
+        if (list.isNotEmpty()) {
+            list.forEachIndexed { index, track ->
+                text
+                    .append(
+                        """${index + 1}. ${track.artist} - <a href="${track.url}">${track.name}</a>""",
+                    ).append("\n")
+            }
+        } else {
+            logger.warn("Result of getRecentSongs() is empty")
+            text.append("${deserialized.thereIsNothingHere} $think")
+        }
+    }
+
+    text.append("\n$whiteHeart${deserialized.favoriteArtists}$blueHeart\n")
 
     getFavoriteArtists().also { list ->
         if (list.isNotEmpty()) {
@@ -112,5 +126,15 @@ private fun getFavoriteArtists(): List<Artist> =
         User.getTopArtists(user, apiKey).toList()
     } catch (e: Exception) {
         logger.error("Error fetching favorite artists: ${e.message}", e)
+        emptyList()
+    }
+
+private fun getRecentSongs(): List<Track> =
+    try {
+        val user = config[Data.user]
+        val apiKey = config[Data.apiKey]
+        User.getRecentTracks(user, 1, 3, apiKey).toList()
+    } catch (e: Exception) {
+        logger.error("Error fetching recent songs: ${e.message}", e)
         emptyList()
     }

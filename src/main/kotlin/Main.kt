@@ -11,9 +11,11 @@ import org.slf4j.LoggerFactory
 private val logger: Logger = LoggerFactory.getLogger("SpotifyBotLogger")
 
 fun main() {
-    Caller.getInstance().apply {
-        userAgent = config[Data.userAgent].toString()
-    }
+    Caller
+        .getInstance()
+        .apply {
+            userAgent = config[Data.userAgent].toString()
+        }.isDebugMode
 
     CoroutineScope(Dispatchers.Default).launch {
         while (true) {
