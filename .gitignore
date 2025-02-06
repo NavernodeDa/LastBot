@@ -33,3 +33,4 @@ replay_pid*
 config.properties
 build/
 .gradle/
+Dockerfile

@@ -19,7 +19,6 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
-import java.io.File
 
 @Serializable
 data class Strings(
@@ -66,10 +65,26 @@ private val client =
     }
 private val lastFmApi = LastFmApi(client)
 
+class Deserialized {
+    fun getDeserialized(fileName: String): Strings? {
+        val file = Deserialized::class.java.getResource(fileName)?.readText()
+
+        return if (file != null) {
+            Json.decodeFromString<Strings>(file)
+        } else {
+            logger.error("strings.json is null")
+            null
+        }
+    }
+}
+
 private val deserialized: Strings =
-    Json.decodeFromString<Strings>(
-        File("./src/main/resources/strings.json").readText(),
-    )
+    try {
+        Deserialized().getDeserialized("strings.json")!!
+    } catch (e: Exception) {
+        logger.error(e.toString())
+        throw e
+    }
 
 private fun createBot(): Bot =
     bot {

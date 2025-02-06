@@ -13,7 +13,7 @@ fun main() {
     CoroutineScope(Dispatchers.Default).launch {
         while (true) {
             updateMessage()
-            logger.info("Message update")
+            logger.info("Message is updated")
             delay(config[Data.updateInterval] * 60000)
         }
     }
