@@ -5,3 +5,5 @@ Data.chatId=-100
 Data.messageId=xL
 Data.userAgent=
 Data.updateInterval=30
+Data.limitForArtists=15
+Data.limitForTracks=3

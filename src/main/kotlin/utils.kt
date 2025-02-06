@@ -36,6 +36,8 @@ object Data : PropertyGroup() {
     val messageId by longType
     val userAgent by stringType
     val updateInterval by longType
+    val limitForArtists by intType
+    val limitForTracks by intType
 }
 
 @Suppress("ktlint:standard:property-naming")
@@ -164,7 +166,7 @@ private suspend fun getFavoriteArtists(): List<TopArtist>? =
     try {
         val user = config[Data.user]
         val apiKey = config[Data.apiKey]
-        lastFmApi.getTopArtists(user, apiKey, limit = 20)?.topartists?.artist
+        lastFmApi.getTopArtists(user, apiKey, limit = config[Data.limitForArtists])?.topartists?.artist
     } catch (e: Exception) {
         logger.error("Error fetching favorite artists: ${e.message}", e)
         emptyList()
@@ -174,7 +176,7 @@ private suspend fun getRecentSongs(): List<Track> =
     try {
         val user = config[Data.user]
         val apiKey = config[Data.apiKey]
-        lastFmApi.getRecentTracks(user, apiKey, limit = 3).recenttracks.track
+        lastFmApi.getRecentTracks(user, apiKey, limit = config[Data.limitForTracks]).recenttracks.track
     } catch (e: Exception) {
         logger.error("Error fetching recent songs: ${e.message}", e)
         emptyList()
