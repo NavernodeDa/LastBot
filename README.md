@@ -20,8 +20,8 @@ The ```chatId``` and  ```messageId``` fields are filled in together: the id of y
 ### ❗️Before you run the bot, add it to your chat/channel and give it admin if you add it to the  channel ❗️
 
 ## TODO list
-- [ ] Change library to [last.fm-api](https://github.com/vpaliy/last.fm-api)
-- [ ] Make it possible to change text from config.properties
+- [x] Write own methods for connecting to Last.fm API
+- [x] Make it possible to change text from config.properties
 - [x] Separate all functions into a separate file
 
 ## Example
@@ -29,10 +29,10 @@ The ```chatId``` and  ```messageId``` fields are filled in together: the id of y
 
 ## Usage
 - ![](https://avatars.githubusercontent.com/u/57418018?s=24) [Kotlin-telegram-bot](https://github.com/kotlin-telegram-bot/kotlin-telegram-bot) for Telegram API.
-- [last.fm-api](https://github.com/jkovacs/lastfm-java) for Last.fm API.
 - ![](https://avatars.githubusercontent.com/u/1521407?s=24) [Slf4j](https://github.com/qos-ch/slf4j) for logging.
 - ![](https://avatars.githubusercontent.com/u/56219?s=24) [Konfig](https://github.com/npryce/konfig) for work with properties file.
 - ![](https://avatars.githubusercontent.com/u/1446536?s=24) [kotlinx.coroutines](https://github.com/Kotlin/kotlinx.coroutines) for coroutines (async).
+- ![](https://avatars.githubusercontent.com/u/28214161?s=24) [ktor](https://github.com/ktorio/ktor) for api requests.
 
 ## License
 MusicProfileBot is under the MIT License. See the [LICENSE](LICENSE) for more information.
