@@ -19,7 +19,6 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
-import java.io.File
 
 @Serializable
 data class Strings(
@@ -27,6 +26,7 @@ data class Strings(
     val favoriteArtists: String,
     val listens: String,
     val thereIsNothingHere: String,
+    val nowPlaying: String,
 )
 
 object Data : PropertyGroup() {
@@ -37,19 +37,9 @@ object Data : PropertyGroup() {
     val messageId by longType
     val userAgent by stringType
     val updateInterval by longType
+    val limitForArtists by intType
+    val limitForTracks by intType
 }
-
-@Suppress("ktlint:standard:property-naming")
-const val notes = "\uD83C\uDFB6"
-
-@Suppress("ktlint:standard:property-naming")
-const val whiteHeart = "\uD83E\uDE76"
-
-@Suppress("ktlint:standard:property-naming")
-const val blueHeart = "\uD83E\uDE75"
-
-@Suppress("ktlint:standard:property-naming")
-const val think = "\uD83E\uDD14"
 
 val config = ConfigurationProperties.fromResource("config.properties")
 private val logger: Logger = LoggerFactory.getLogger("SpotifyBotLogger")
@@ -66,10 +56,26 @@ private val client =
     }
 private val lastFmApi = LastFmApi(client)
 
+class Deserialized {
+    fun getDeserialized(fileName: String): Strings? {
+        val file = Deserialized::class.java.getResource(fileName)?.readText()
+
+        return if (file != null) {
+            Json.decodeFromString<Strings>(file)
+        } else {
+            logger.error("strings.json is null")
+            null
+        }
+    }
+}
+
 private val deserialized: Strings =
-    Json.decodeFromString<Strings>(
-        File("./src/main/resources/strings.json").readText(),
-    )
+    try {
+        Deserialized().getDeserialized("strings.json")!!
+    } catch (e: Exception) {
+        logger.error(e.toString())
+        throw e
+    }
 
 private fun createBot(): Bot =
     bot {
@@ -105,12 +111,24 @@ suspend fun updateMessage(userId: Long? = null) {
 }
 
 private suspend fun buildText(): String {
-    val text =
-        StringBuilder().append("$notes${deserialized.pastSongs}$notes\n")
+    var recentTracks = getRecentSongs()
+    val text = StringBuilder()
 
-    getRecentSongs().also { list ->
-        if (list.isNotEmpty()) {
-            list.forEach { track ->
+    if (recentTracks.size != config[Data.limitForTracks]) {
+        val firstTrack = recentTracks[0]
+        text
+            .append("${deserialized.nowPlaying}\n")
+            .append(
+                """${firstTrack.artist.text} - <a href="${firstTrack.url}">${firstTrack.name}</a>""",
+            ).append("\n\n")
+        recentTracks = recentTracks.drop(1)
+    }
+
+    text.append("${deserialized.pastSongs}\n")
+
+    recentTracks.also {
+        if (it.isNotEmpty()) {
+            it.forEach { track ->
                 text
                     .append(
                         """${track.artist.text} - <a href="${track.url}">${track.name}</a>""",
@@ -118,11 +136,11 @@ private suspend fun buildText(): String {
             }
         } else {
             logger.warn("Result of getRecentSongs() is empty")
-            text.append("${deserialized.thereIsNothingHere} $think")
+            text.append(deserialized.thereIsNothingHere)
         }
     }
 
-    text.append("\n$whiteHeart${deserialized.favoriteArtists}$blueHeart\n")
+    text.append("\n${deserialized.favoriteArtists}\n")
 
     getFavoriteArtists().also { list ->
         if (list != null) {
@@ -136,7 +154,7 @@ private suspend fun buildText(): String {
             }
         } else {
             logger.warn("Result of getFavoriteArtists() is empty")
-            text.append("${deserialized.thereIsNothingHere} $think")
+            text.append(deserialized.thereIsNothingHere)
         }
     }
 
@@ -149,7 +167,7 @@ private suspend fun getFavoriteArtists(): List<TopArtist>? =
     try {
         val user = config[Data.user]
         val apiKey = config[Data.apiKey]
-        lastFmApi.getTopArtists(user, apiKey, limit = 20)?.topartists?.artist
+        lastFmApi.getTopArtists(user, apiKey, limit = config[Data.limitForArtists])?.topartists?.artist
     } catch (e: Exception) {
         logger.error("Error fetching favorite artists: ${e.message}", e)
         emptyList()
@@ -159,7 +177,7 @@ private suspend fun getRecentSongs(): List<Track> =
     try {
         val user = config[Data.user]
         val apiKey = config[Data.apiKey]
-        lastFmApi.getRecentTracks(user, apiKey, limit = 3).recenttracks.track
+        lastFmApi.getRecentTracks(user, apiKey, limit = config[Data.limitForTracks]).recenttracks.track
     } catch (e: Exception) {
         logger.error("Error fetching recent songs: ${e.message}", e)
         emptyList()

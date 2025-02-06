@@ -4,10 +4,11 @@ plugins {
     kotlin("jvm") version "2.1.0"
     kotlin("plugin.serialization") version "2.1.0"
     application
+    java
 }
 
 group = "dev.kumchatka"
-version = "1.2.1"
+version = "2.2.1"
 
 repositories {
     mavenCentral()
