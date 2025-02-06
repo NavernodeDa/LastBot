@@ -19,12 +19,11 @@ dependencies {
 
     implementation("de.u-mass:lastfm-java:0.1.2")
 
-//    implementation("com.github.vpaliyX:Last.fm-API:v1.2.0")
-//    implementation("com.google.code.gson:gson:2.8.9")
-//    implementation("com.squareup.okio:okio:3.4.0")
-//    implementation("com.google.code.gson:gson:2.8.9")
-//    implementation("com.squareup.retrofit2:retrofit:2.5.0")
-//    implementation("com.squareup.okio:okio:3.4.0")
+    implementation("io.ktor:ktor-client-core:2.3.13")
+    implementation("com.squareup.okio:okio:3.4.0")
+    implementation("io.ktor:ktor-client-cio:2.3.0")
+    implementation("io.ktor:ktor-client-content-negotiation:2.3.0")
+    implementation("io.ktor:ktor-serialization-gson:2.3.0")
 
     implementation("org.slf4j:slf4j-simple:2.0.16")
 
