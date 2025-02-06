@@ -1,6 +1,7 @@
 {
-  "pastSongs": "Прошлые песни",
-  "favoriteArtists": "Любимые исполнители",
+  "pastSongs": "\uD83C\uDFB6 Прошлые песни \uD83C\uDFB6",
+  "favoriteArtists": "\uD83E\uDE76 Любимые исполнители \uD83E\uDE75",
   "listens": "прослушиваний",
-  "thereIsNothingHere": "Тут ничего нету"
+  "thereIsNothingHere": "Тут ничего нету \uD83E\uDD14",
+  "nowPlaying": "\uD83C\uDFA7 Сейчас играет \uD83C\uDFA7"
 }

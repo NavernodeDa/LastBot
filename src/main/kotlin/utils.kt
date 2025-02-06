@@ -26,6 +26,7 @@ data class Strings(
     val favoriteArtists: String,
     val listens: String,
     val thereIsNothingHere: String,
+    val nowPlaying: String,
 )
 
 object Data : PropertyGroup() {
@@ -39,18 +40,6 @@ object Data : PropertyGroup() {
     val limitForArtists by intType
     val limitForTracks by intType
 }
-
-@Suppress("ktlint:standard:property-naming")
-const val notes = "\uD83C\uDFB6"
-
-@Suppress("ktlint:standard:property-naming")
-const val whiteHeart = "\uD83E\uDE76"
-
-@Suppress("ktlint:standard:property-naming")
-const val blueHeart = "\uD83E\uDE75"
-
-@Suppress("ktlint:standard:property-naming")
-const val think = "\uD83E\uDD14"
 
 val config = ConfigurationProperties.fromResource("config.properties")
 private val logger: Logger = LoggerFactory.getLogger("SpotifyBotLogger")
@@ -122,12 +111,24 @@ suspend fun updateMessage(userId: Long? = null) {
 }
 
 private suspend fun buildText(): String {
-    val text =
-        StringBuilder().append("$notes${deserialized.pastSongs}$notes\n")
+    var recentTracks = getRecentSongs()
+    val text = StringBuilder()
 
-    getRecentSongs().also { list ->
-        if (list.isNotEmpty()) {
-            list.forEach { track ->
+    if (recentTracks.size != config[Data.limitForTracks]) {
+        val firstTrack = recentTracks[0]
+        text
+            .append("${deserialized.nowPlaying}\n")
+            .append(
+                """${firstTrack.artist.text} - <a href="${firstTrack.url}">${firstTrack.name}</a>""",
+            ).append("\n\n")
+        recentTracks = recentTracks.drop(1)
+    }
+
+    text.append("${deserialized.pastSongs}\n")
+
+    recentTracks.also {
+        if (it.isNotEmpty()) {
+            it.forEach { track ->
                 text
                     .append(
                         """${track.artist.text} - <a href="${track.url}">${track.name}</a>""",
@@ -135,11 +136,11 @@ private suspend fun buildText(): String {
             }
         } else {
             logger.warn("Result of getRecentSongs() is empty")
-            text.append("${deserialized.thereIsNothingHere} $think")
+            text.append(deserialized.thereIsNothingHere)
         }
     }
 
-    text.append("\n$whiteHeart${deserialized.favoriteArtists}$blueHeart\n")
+    text.append("\n${deserialized.favoriteArtists}\n")
 
     getFavoriteArtists().also { list ->
         if (list != null) {
@@ -153,7 +154,7 @@ private suspend fun buildText(): String {
             }
         } else {
             logger.warn("Result of getFavoriteArtists() is empty")
-            text.append("${deserialized.thereIsNothingHere} $think")
+            text.append(deserialized.thereIsNothingHere)
         }
     }
 
