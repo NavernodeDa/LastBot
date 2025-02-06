@@ -6,11 +6,28 @@ import com.github.kotlintelegrambot.dispatch
 import com.github.kotlintelegrambot.dispatcher.command
 import com.github.kotlintelegrambot.entities.ChatId
 import com.github.kotlintelegrambot.entities.ParseMode
+import com.github.kotlintelegrambot.logging.LogLevel
 import com.natpryce.konfig.*
-import de.umass.lastfm.Artist
-import de.umass.lastfm.User
+import dataClasses.TopArtist
+import dataClasses.Track
+import io.ktor.client.*
+import io.ktor.client.engine.cio.*
+import io.ktor.client.plugins.*
+import io.ktor.client.plugins.contentnegotiation.*
+import io.ktor.serialization.gson.*
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.Json
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
+import java.io.File
+
+@Serializable
+data class Strings(
+    val pastSongs: String,
+    val favoriteArtists: String,
+    val listens: String,
+    val thereIsNothingHere: String,
+)
 
 object Data : PropertyGroup() {
     val apiKey by stringType
@@ -22,21 +39,55 @@ object Data : PropertyGroup() {
     val updateInterval by longType
 }
 
+@Suppress("ktlint:standard:property-naming")
+const val notes = "\uD83C\uDFB6"
+
+@Suppress("ktlint:standard:property-naming")
+const val whiteHeart = "\uD83E\uDE76"
+
+@Suppress("ktlint:standard:property-naming")
+const val blueHeart = "\uD83E\uDE75"
+
+@Suppress("ktlint:standard:property-naming")
+const val think = "\uD83E\uDD14"
+
 val config = ConfigurationProperties.fromResource("config.properties")
 private val logger: Logger = LoggerFactory.getLogger("SpotifyBotLogger")
 val bot = createBot()
 
+private val client =
+    HttpClient(CIO) {
+        install(ContentNegotiation) {
+            gson()
+        }
+        install(UserAgent) {
+            config[Data.userAgent]
+        }
+    }
+private val lastFmApi = LastFmApi(client)
+
+private val deserialized: Strings =
+    Json.decodeFromString<Strings>(
+        File("./src/main/resources/strings.json").readText(),
+    )
+
 private fun createBot(): Bot =
     bot {
         token = config[Data.tokenBot]
+        logLevel = LogLevel.Error
         dispatch {
             command("update") {
-                updateMessage(message.from?.id)
+                if (message.from != null) {
+                    updateMessage(message.from!!.id)
+                } else {
+                    logger.warn("message.from is null")
+                    return@command
+                }
             }
         }
     }
 
-fun updateMessage(userId: Long? = null) {
+suspend fun updateMessage(userId: Long? = null) {
     bot.editMessageText(
         chatId = ChatId.fromId(config[Data.chatId]),
         messageId = config[Data.messageId],
@@ -53,32 +104,63 @@ fun updateMessage(userId: Long? = null) {
     }
 }
 
-private fun buildText(): String {
+private suspend fun buildText(): String {
     val text =
-        StringBuilder().append(
-            "\uD83C\uDFB6Прошлые песни\uD83C\uDFB6\nТут должны быть песни - Но Spotify гандоны\n\n" +
-                "\uD83E\uDE76Любимые исполнители\uD83E\uDE75\n",
-        )
+        StringBuilder().append("$notes${deserialized.pastSongs}$notes\n")
 
-    getFavoriteArtists().also { artist ->
-        if (artist.isNotEmpty()) {
-            artist.dropLast(30).forEachIndexed { index, name ->
-                text.append("""${index + 1}. <a href="${name.url}">${name.name}</a> - ${name.playcount} прослушиваний""" + "\n")
+    getRecentSongs().also { list ->
+        if (list.isNotEmpty()) {
+            list.forEach { track ->
+                text
+                    .append(
+                        """${track.artist.text} - <a href="${track.url}">${track.name}</a>""",
+                    ).append("\n")
             }
         } else {
-            text.append("Тут ничего нету \uD83E\uDD14")
+            logger.warn("Result of getRecentSongs() is empty")
+            text.append("${deserialized.thereIsNothingHere} $think")
         }
     }
 
-    return text.toString()
+    text.append("\n$whiteHeart${deserialized.favoriteArtists}$blueHeart\n")
+
+    getFavoriteArtists().also { list ->
+        if (list != null) {
+            if (list.isNotEmpty()) {
+                list.forEachIndexed { index, artist ->
+                    text
+                        .append(
+                            """${index + 1}. <a href="${artist.url}">${artist.name}</a> - ${artist.playcount} ${deserialized.listens}""",
+                        ).append("\n")
+                }
+            }
+        } else {
+            logger.warn("Result of getFavoriteArtists() is empty")
+            text.append("${deserialized.thereIsNothingHere} $think")
+        }
+    }
+
+    return text
+        .toString()
+        .replace("&", "&amp;")
 }
 
-private fun getFavoriteArtists(): List<Artist> =
+private suspend fun getFavoriteArtists(): List<TopArtist>? =
     try {
         val user = config[Data.user]
         val apiKey = config[Data.apiKey]
-        User.getTopArtists(user, apiKey).toList()
+        lastFmApi.getTopArtists(user, apiKey, limit = 20)?.topartists?.artist
     } catch (e: Exception) {
         logger.error("Error fetching favorite artists: ${e.message}", e)
+        emptyList()
+    }
+
+private suspend fun getRecentSongs(): List<Track> =
+    try {
+        val user = config[Data.user]
+        val apiKey = config[Data.apiKey]
+        lastFmApi.getRecentTracks(user, apiKey, limit = 3).recenttracks.track
+    } catch (e: Exception) {
+        logger.error("Error fetching recent songs: ${e.message}", e)
         emptyList()
     }
