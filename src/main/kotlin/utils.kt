@@ -144,13 +144,11 @@ private suspend fun buildText(): String {
 
     getFavoriteArtists().also { list ->
         if (list != null) {
-            if (list.isNotEmpty()) {
-                list.forEachIndexed { index, artist ->
-                    text
-                        .append(
-                            """${index + 1}. <a href="${artist.url}">${artist.name}</a> - ${artist.playcount} ${deserialized.listens}""",
-                        ).append("\n")
-                }
+            list.forEachIndexed { index, artist ->
+                text
+                    .append(
+                        """${index + 1}. <a href="${artist.url}">${artist.name}</a> - ${artist.playcount} ${deserialized.listens}""",
+                    ).append("\n")
             }
         } else {
             logger.warn("Result of getFavoriteArtists() is empty")
@@ -168,9 +166,12 @@ private suspend fun getFavoriteArtists(): List<TopArtist>? =
         val user = config[Data.user]
         val apiKey = config[Data.apiKey]
         lastFmApi.getTopArtists(user, apiKey, limit = config[Data.limitForArtists])?.topartists?.artist
+    } catch (e: HttpRequestTimeoutException) {
+        logger.error("Error fetching favorite artists: Request timeout has expired")
+        null
     } catch (e: Exception) {
         logger.error("Error fetching favorite artists: ${e.message}", e)
-        emptyList()
+        null
     }
 
 private suspend fun getRecentSongs(): List<Track> =
