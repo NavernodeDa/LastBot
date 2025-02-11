@@ -1,3 +1,5 @@
+@file:Suppress("SpellCheckingInspection")
+
 package dataClasses
 
 import com.google.gson.annotations.SerializedName
