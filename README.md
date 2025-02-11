@@ -7,22 +7,19 @@ Kotlin-based Telegram bot for tracking and updating information about user's mus
 Insert the required values into src/main/resources/config.properties:
 
 ```properties
-apiKey=ap1K3y40r1astFm
-user=user_from_last_fm
-tokenBot=1234567890:tokenForYourTelegramBot
-chatId=chatId for your chat/channel
-messageId=2L // id of the message that will be changed in chat/channel
-userAgent=user agent for Last.fm library
-updateInterval=interval in minutes
+Data.apiKey=ap1K3y40r1astFm
+Data.user=user_from_last_fm
+Data.tokenBot=1234567890:tokenForYourTelegramBot
+Data.chatId=chatId for your chat/channel
+Data.messageId=id of the message that will be changed in chat/channel
+Data.userAgent=user agent for Last.fm library
+Data.updateInterval=interval in minutes
+Data.limitForArtists=limit for list of artists
+Data.limitForTracks=limit for list of recent tracks
 ```
 The ```chatId``` and  ```messageId``` fields are filled in together: the id of your chat/channel is inserted into chatId, and the id of the message from your chat/channel is inserted into messageId.
 
 ### ❗️Before you run the bot, add it to your chat/channel and give it admin if you add it to the  channel ❗️
-
-## TODO list
-- [x] Write own methods for connecting to Last.fm API
-- [x] Make it possible to change text from config.properties
-- [x] Separate all functions into a separate file
 
 ## Example
 ![](https://github.com/user-attachments/assets/bcec9523-5a20-4543-b94e-37ed4e8d433e)

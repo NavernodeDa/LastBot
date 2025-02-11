@@ -30,5 +30,5 @@ data class User(
 data class Registered(
     val unixtime: String,
     @SerializedName("#text")
-    val text: Long, // TODO: возможна проблема
+    val text: Long,
 )

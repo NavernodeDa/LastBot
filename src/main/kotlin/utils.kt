@@ -8,93 +8,61 @@ import com.github.kotlintelegrambot.entities.ChatId
 import com.github.kotlintelegrambot.entities.ParseMode
 import com.github.kotlintelegrambot.entities.User
 import com.github.kotlintelegrambot.logging.LogLevel
-import com.natpryce.konfig.*
+import com.natpryce.konfig.ConfigurationProperties
+import dataClasses.Data
+import dataClasses.Strings
 import dataClasses.TopArtist
 import dataClasses.Track
 import io.ktor.client.*
-import io.ktor.client.engine.cio.*
 import io.ktor.client.plugins.*
-import io.ktor.client.plugins.contentnegotiation.*
-import io.ktor.serialization.gson.*
-import kotlinx.serialization.Serializable
-import kotlinx.serialization.json.Json
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import org.slf4j.Logger
-import org.slf4j.LoggerFactory
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
 import java.util.*
 
-@Serializable
-data class Strings(
-    val pastSongs: String,
-    val favoriteArtists: String,
-    val listens: String,
-    val thereIsNothingHere: String,
-    val nowPlaying: String,
-    val infoForAccount: String,
-    val age: String,
-    val gender: String,
-    val subscriber: String,
-    val realName: String,
-    val country: String,
-    val playcount: String,
-    val artistCount: String,
-    val trackCount: String,
-    val albumCount: String,
-    val playlists: String,
-    val registered: String,
-    val link: String,
-)
+private lateinit var config: ConfigurationProperties
+private lateinit var logger: Logger
+private lateinit var client: HttpClient
+private lateinit var bot: Bot
 
-object Data : PropertyGroup() {
-    val apiKey by stringType
-    val user by stringType
-    val tokenBot by stringType
-    val chatId by longType
-    val messageId by longType
-    val userAgent by stringType
-    val updateInterval by longType
-    val limitForArtists by intType
-    val limitForTracks by intType
-}
+fun startUpdate(
+    properties: ConfigurationProperties,
+    loggerFunc: Logger,
+    httpClient: HttpClient,
+) {
+    config = properties
+    logger = loggerFunc
+    client = httpClient
+    bot = createBot(properties[Data.tokenBot])
 
-val config = ConfigurationProperties.fromResource("config.properties")
-private val logger: Logger = LoggerFactory.getLogger("SpotifyBotLogger")
-val bot = createBot()
-
-private val client =
-    HttpClient(CIO) {
-        install(ContentNegotiation) {
-            gson()
-        }
-        install(UserAgent) {
-            config[Data.userAgent]
+    fun getTime(): String = LocalDateTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss"))
+    CoroutineScope(Dispatchers.Default).launch {
+        while (true) {
+            updateMessage()
+            loggerFunc.info("${getTime()} - message is updated")
+            delay(properties[Data.updateInterval] * 60000)
         }
     }
-private val lastFmApi = LastFmApi(client)
 
-class Deserialized {
-    fun getDeserialized(fileName: String): Strings? {
-        val file = Deserialized::class.java.getResource(fileName)?.readText()
-
-        return if (file != null) {
-            Json.decodeFromString<Strings>(file)
-        } else {
-            logger.error("strings.json is null")
-            null
-        }
-    }
+    bot.startPolling()
+    loggerFunc.info("Bot is started")
 }
 
-private val deserialized: Strings =
+private fun deserialize(logger: Logger): Strings =
     try {
-        Deserialized().getDeserialized("strings.json")!!
+        Deserialized(logger).getDeserialized("strings.json")!!
     } catch (e: Exception) {
         logger.error(e.toString())
         throw e
     }
 
-private fun createBot(): Bot =
+private fun createBot(tokenBot: String): Bot =
     bot {
-        token = config[Data.tokenBot]
+        token = tokenBot
         logLevel = LogLevel.Error
         dispatch {
             command("update") {
@@ -106,33 +74,39 @@ private fun createBot(): Bot =
                 if (checkNullMessageFrom(message.from)) {
                     val messageSplit = message.text!!.split(" ")
                     if (messageSplit.size >= 2) {
-                        sendInfo(message.from!!.id, messageSplit[1])
+                        bot.sendMessage(
+                            ChatId.fromId(message.from!!.id),
+                            infoText(messageSplit[1]),
+                            parseMode = ParseMode.HTML,
+                        )
                     } else {
-                        sendInfo(message.from!!.id)
+                        bot.sendMessage(
+                            ChatId.fromId(message.from!!.id),
+                            infoText(),
+                            parseMode = ParseMode.HTML,
+                        )
                     }
                 }
             }
         }
     }
 
-fun checkNullMessageFrom(from: User?) =
-    if (from?.id == null) {
+private fun checkNullMessageFrom(from: User?) =
+    if (from == null) {
         logger.warn("message.from is null")
         false
     } else {
         true
     }
 
-private suspend fun sendInfo(
-    id: Long,
-    lastFmUser: String? = null,
-) {
+private suspend fun infoText(lastFmUser: String? = null): String {
     val user =
-        lastFmApi
+        LastFmApi(client)
             .getInfo(
                 lastFmUser ?: config[Data.user],
                 config[Data.apiKey],
             ).user
+    val deserialized = deserialize(logger)
     val text =
         """
         <b>${deserialized.infoForAccount}: <a href="${user.image[2].text}">${user.name}</a></b>
@@ -150,14 +124,10 @@ private suspend fun sendInfo(
         ${deserialized.link}: <a href="${user.url}">${user.name}</a>
         ${deserialized.registered}: ${Date(user.registered.text * 1000L)}
         """.trimIndent()
-    bot.sendMessage(
-        ChatId.fromId(id),
-        text,
-        parseMode = ParseMode.HTML,
-    )
+    return text
 }
 
-suspend fun updateMessage(userId: Long? = null) {
+private suspend fun updateMessage(userId: Long? = null) {
     bot.editMessageText(
         chatId = ChatId.fromId(config[Data.chatId]),
         messageId = config[Data.messageId],
@@ -175,49 +145,30 @@ suspend fun updateMessage(userId: Long? = null) {
 }
 
 private suspend fun buildText(): String {
-    var recentTracks = getRecentSongs().ifEmpty { null }
+    val deserialized = deserialize(logger)
     val text = StringBuilder()
+    val recentTracks = getRecentSongs()?.ifEmpty { null }
+    val favoriteArtists = getFavoriteArtists()?.ifEmpty { null }
 
-    if (recentTracks != null) {
-        if (recentTracks.size != config[Data.limitForTracks]) {
-            val firstTrack = recentTracks[0]
-            text
-                .append("${deserialized.nowPlaying}\n")
-                .append(
-                    """${firstTrack.artist.text} - <a href="${firstTrack.url}">${firstTrack.name}</a>""",
-                ).append("\n\n")
-            recentTracks = recentTracks.drop(1)
-        }
+    if (recentTracks?.size != config[Data.limitForTracks]) {
+        text.append("${deserialized.nowPlaying}\n")
+        addNowPlaying(text, recentTracks?.get(0))
     }
 
-    text.append("${deserialized.pastSongs}\n")
-
-    if (recentTracks != null) {
-        recentTracks.onEach { track ->
-            text
-                .append(
-                    """${track.artist.text} - <a href="${track.url}">${track.name}</a>""",
-                ).append("\n")
-        }
-    } else {
+    text.append("\n${deserialized.pastSongs}\n")
+    recentTracks?.let {
+        addRecentTracks(text, it)
+    } ?: run {
         logger.warn("Result of getRecentSongs() is empty")
         text.append(deserialized.thereIsNothingHere)
     }
 
     text.append("\n${deserialized.favoriteArtists}\n")
-
-    getFavoriteArtists().also { list ->
-        if (list != null) {
-            list.forEachIndexed { index, artist ->
-                text
-                    .append(
-                        """${index + 1}. <a href="${artist.url}">${artist.name}</a> - ${artist.playcount} ${deserialized.listens}""",
-                    ).append("\n")
-            }
-        } else {
-            logger.warn("Result of getFavoriteArtists() is empty")
-            text.append(deserialized.thereIsNothingHere)
-        }
+    favoriteArtists?.let {
+        addFavoriteArtists(text, favoriteArtists)
+    } ?: run {
+        logger.warn("Result of getFavoriteArtists() is empty")
+        text.append(deserialized.thereIsNothingHere)
     }
 
     return text
@@ -225,25 +176,65 @@ private suspend fun buildText(): String {
         .replace("&", "&amp;")
 }
 
+private fun addNowPlaying(
+    text: StringBuilder,
+    track: Track?,
+) {
+    if (track != null) {
+        text
+            .append(
+                """${track.artist.text} - <a href="${track.url}">${track.name}</a>""",
+            ).append("\n\n")
+    }
+}
+
+private fun addRecentTracks(
+    text: StringBuilder,
+    recentTracks: List<Track>,
+) {
+    recentTracks.onEach { track ->
+        text
+            .append(
+                """${track.artist.text} - <a href="${track.url}">${track.name}</a>""",
+            ).append("\n")
+    }
+}
+
+private fun addFavoriteArtists(
+    text: StringBuilder,
+    listArtists: List<TopArtist>,
+) {
+    val deserialized = deserialize(logger)
+
+    listArtists.forEachIndexed { index, artist ->
+        text
+            .append(
+                """${index + 1}. <a href="${artist.url}">${artist.name}</a> - ${artist.playcount} ${deserialized.listens}""",
+            ).append("\n")
+    }
+}
+
 private suspend fun getFavoriteArtists(): List<TopArtist>? =
-    try {
+    safeApiCall {
         val user = config[Data.user]
         val apiKey = config[Data.apiKey]
-        lastFmApi.getTopArtists(user, apiKey, limit = config[Data.limitForArtists])?.topartists?.artist
-    } catch (e: HttpRequestTimeoutException) {
-        logger.error("Error fetching favorite artists: Request timeout has expired")
-        null
-    } catch (e: Exception) {
-        logger.error("Error fetching favorite artists: ${e.message}", e)
-        null
+        LastFmApi(client).getTopArtists(user, apiKey, limit = config[Data.limitForArtists])?.topartists?.artist
     }
 
-private suspend fun getRecentSongs(): List<Track> =
-    try {
+private suspend fun getRecentSongs(): List<Track>? =
+    safeApiCall {
         val user = config[Data.user]
         val apiKey = config[Data.apiKey]
-        lastFmApi.getRecentTracks(user, apiKey, limit = config[Data.limitForTracks]).recenttracks.track
+        LastFmApi(client).getRecentTracks(user, apiKey, limit = config[Data.limitForTracks]).recenttracks.track
+    }
+
+private suspend fun <T> safeApiCall(block: suspend () -> T): T? =
+    try {
+        block()
+    } catch (e: HttpRequestTimeoutException) {
+        logger.error("Request timeout has expired")
+        null
     } catch (e: Exception) {
-        logger.error("Error fetching recent songs: ${e.message}", e)
-        emptyList()
+        logger.error("Error occurred", e)
+        null
     }
