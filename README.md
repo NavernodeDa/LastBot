@@ -22,7 +22,7 @@ The ```chatId``` and  ```messageId``` fields are filled in together: the id of y
 ### ❗️Before you run the bot, add it to your chat/channel and give it admin if you add it to the  channel ❗️
 
 ## Example
-![](https://github.com/user-attachments/assets/bcec9523-5a20-4543-b94e-37ed4e8d433e)
+![](https://github.com/user-attachments/assets/13c53e7b-94b5-4f1f-b58d-b94801465573)
 
 ## Usage
 - ![](https://avatars.githubusercontent.com/u/57418018?s=24) [Kotlin-telegram-bot](https://github.com/kotlin-telegram-bot/kotlin-telegram-bot) for Telegram API.
