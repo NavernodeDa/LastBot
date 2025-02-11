@@ -1,5 +1,6 @@
 @file:Suppress("ktlint:standard:no-wildcard-imports")
 
+import dataClasses.GetInfoResponse
 import dataClasses.RecentTracksResponse
 import dataClasses.TopArtistsResponse
 import io.ktor.client.*
@@ -67,6 +68,24 @@ class LastFmApi(
                     parameter("from", from)
                     parameter("extended", extended)
                     parameter("to", to)
+                    parameter("format", "json")
+                }.body()
+        }
+
+    /**
+     *@param user (Optional) : The user to fetch info for. Defaults to the authenticated user.
+     *@param apiKey (Required) : A Last.fm API key.
+     */
+    suspend fun getInfo(
+        user: String,
+        apiKey: String,
+    ): GetInfoResponse =
+        withContext(Dispatchers.IO) {
+            client
+                .get("https://ws.audioscrobbler.com/2.0/") {
+                    parameter("method", "user.getInfo")
+                    parameter("api_key", apiKey)
+                    parameter("user", user)
                     parameter("format", "json")
                 }.body()
         }

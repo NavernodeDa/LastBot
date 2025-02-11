@@ -1,27 +1,26 @@
 @file:Suppress("ktlint:standard:no-wildcard-imports")
 
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
-import org.slf4j.Logger
+import com.natpryce.konfig.ConfigurationProperties
+import dataClasses.Data
+import io.ktor.client.*
+import io.ktor.client.engine.cio.*
+import io.ktor.client.plugins.*
+import io.ktor.client.plugins.contentnegotiation.*
+import io.ktor.serialization.gson.*
 import org.slf4j.LoggerFactory
-import java.time.LocalDateTime
-import java.time.format.DateTimeFormatter
-
-private val logger: Logger = LoggerFactory.getLogger("SpotifyBotLogger")
 
 fun main() {
-    CoroutineScope(Dispatchers.Default).launch {
-        while (true) {
-            updateMessage()
-            logger.info("${getTime()} - message is updated")
-            delay(config[Data.updateInterval] * 60000)
-        }
-    }
-
-    bot.startPolling()
-    logger.info("Bot is started")
+    val config = ConfigurationProperties.fromResource("config.properties")
+    startUpdate(
+        config,
+        LoggerFactory.getLogger("SpotifyBotLogger"),
+        HttpClient(CIO) {
+            install(ContentNegotiation) {
+                gson()
+            }
+            install(UserAgent) {
+                config[Data.userAgent]
+            }
+        },
+    )
 }
-
-fun getTime(): String = LocalDateTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss"))
