@@ -25,6 +25,8 @@ The ```chatId``` and  ```messageId``` fields are filled in together: the id of y
 
 If you want to change the language for your modifiable message, all you need to do is change the name of your file in the `utils.kt` file in the `deserialize()` function. You can also change string values in the file itself (including smiles).
 
+![](https://github.com/user-attachments/assets/199c305b-4003-46ed-aff5-0a6043297fed)
+
 ## Example
 ![](https://github.com/user-attachments/assets/13c53e7b-94b5-4f1f-b58d-b94801465573)
 
