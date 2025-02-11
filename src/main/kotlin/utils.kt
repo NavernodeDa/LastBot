@@ -54,7 +54,7 @@ fun startUpdate(
 
 private fun deserialize(logger: Logger): Strings =
     try {
-        Deserialized(logger).getDeserialized("strings.json")!!
+        Deserialized(logger).getDeserialized("strings_ru.json")!!
     } catch (e: Exception) {
         logger.error(e.toString())
         throw e
