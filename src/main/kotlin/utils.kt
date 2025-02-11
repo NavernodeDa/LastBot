@@ -111,33 +111,33 @@ suspend fun updateMessage(userId: Long? = null) {
 }
 
 private suspend fun buildText(): String {
-    var recentTracks = getRecentSongs()
+    var recentTracks = getRecentSongs().ifEmpty { null }
     val text = StringBuilder()
 
-    if (recentTracks.size != config[Data.limitForTracks]) {
-        val firstTrack = recentTracks[0]
-        text
-            .append("${deserialized.nowPlaying}\n")
-            .append(
-                """${firstTrack.artist.text} - <a href="${firstTrack.url}">${firstTrack.name}</a>""",
-            ).append("\n\n")
-        recentTracks = recentTracks.drop(1)
+    if (recentTracks != null) {
+        if (recentTracks.size != config[Data.limitForTracks]) {
+            val firstTrack = recentTracks[0]
+            text
+                .append("${deserialized.nowPlaying}\n")
+                .append(
+                    """${firstTrack.artist.text} - <a href="${firstTrack.url}">${firstTrack.name}</a>""",
+                ).append("\n\n")
+            recentTracks = recentTracks.drop(1)
+        }
     }
 
     text.append("${deserialized.pastSongs}\n")
 
-    recentTracks.also {
-        if (it.isNotEmpty()) {
-            it.forEach { track ->
-                text
-                    .append(
-                        """${track.artist.text} - <a href="${track.url}">${track.name}</a>""",
-                    ).append("\n")
-            }
-        } else {
-            logger.warn("Result of getRecentSongs() is empty")
-            text.append(deserialized.thereIsNothingHere)
+    if (recentTracks != null) {
+        recentTracks.onEach { track ->
+            text
+                .append(
+                    """${track.artist.text} - <a href="${track.url}">${track.name}</a>""",
+                ).append("\n")
         }
+    } else {
+        logger.warn("Result of getRecentSongs() is empty")
+        text.append(deserialized.thereIsNothingHere)
     }
 
     text.append("\n${deserialized.favoriteArtists}\n")
