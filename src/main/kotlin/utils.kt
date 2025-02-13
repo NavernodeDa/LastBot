@@ -23,11 +23,13 @@ import org.slf4j.Logger
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import java.util.*
+import java.util.concurrent.ConcurrentHashMap
 
 private lateinit var config: ConfigurationProperties
 private lateinit var logger: Logger
 private lateinit var client: HttpClient
 private lateinit var bot: Bot
+private var cache = ConcurrentHashMap<String, String>()
 
 fun startUpdate(
     properties: ConfigurationProperties,
@@ -42,8 +44,12 @@ fun startUpdate(
     fun getTime(): String = LocalDateTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss"))
     CoroutineScope(Dispatchers.Default).launch {
         while (true) {
-            updateMessage()
-            loggerFunc.info("${getTime()} - message is updated")
+            val text = buildText()
+            if (cache["text"] != text) {
+                cache["text"] = text
+                updateMessage(cache["text"]!!)
+                loggerFunc.info("${getTime()} - message is updated")
+            }
             delay(properties[Data.updateInterval] * 60000)
         }
     }
@@ -67,7 +73,7 @@ private fun createBot(tokenBot: String): Bot =
         dispatch {
             command("update") {
                 if (checkNullMessageFrom(message.from)) {
-                    updateMessage(message.from!!.id)
+                    updateMessage(buildText(), message.from!!.id)
                 }
             }
             command("info") {
@@ -127,11 +133,14 @@ private suspend fun infoText(lastFmUser: String? = null): String {
     return text
 }
 
-private suspend fun updateMessage(userId: Long? = null) {
+private fun updateMessage(
+    text: String,
+    userId: Long? = null,
+) {
     bot.editMessageText(
         chatId = ChatId.fromId(config[Data.chatId]),
         messageId = config[Data.messageId],
-        text = buildText(),
+        text = text,
         parseMode = ParseMode.HTML,
         disableWebPagePreview = true,
     )
