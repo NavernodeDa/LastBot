@@ -24,7 +24,7 @@ import java.util.concurrent.ConcurrentHashMap
 
 private lateinit var config: ConfigurationProperties
 private lateinit var logger: Logger
-private lateinit var client: HttpClient
+lateinit var client: HttpClient
 private lateinit var bot: Bot
 private var cache = ConcurrentHashMap<String, String>()
 
@@ -104,11 +104,7 @@ private fun checkNullMessageFrom(from: User?) =
 
 private suspend fun infoText(lastFmUser: String? = null): String {
     val user =
-        LastFmApi(client)
-            .getInfo(
-                lastFmUser ?: config[Data.user],
-                config[Data.apiKey],
-            ).user
+        LastFmApi(client, config[Data.apiKey]).User(lastFmUser ?: config[Data.user]).getInfo().user
     val deserialized = deserialize(logger)
     val text =
         """
@@ -226,14 +222,21 @@ private suspend fun getFavoriteArtists(): List<TopArtist>? =
     safeApiCall {
         val user = config[Data.user]
         val apiKey = config[Data.apiKey]
-        LastFmApi(client).getTopArtists(user, apiKey, limit = config[Data.limitForArtists])?.topartists?.artist
+        LastFmApi(client, apiKey)
+            .User(user)
+            .getTopArtists(limit = config[Data.limitForArtists])
+            ?.topartists
+            ?.artist
     }
 
 private suspend fun getRecentSongs(): List<Track>? =
     safeApiCall {
         val user = config[Data.user]
         val apiKey = config[Data.apiKey]
-        LastFmApi(client).getRecentTracks(user, apiKey, limit = config[Data.limitForTracks]).recenttracks.track
+        LastFmApi(client, apiKey)
+            .User(user)
+            .getRecentTracks(limit = config[Data.limitForTracks])
+            .recenttracks.track
     }
 
 private suspend fun <T> safeApiCall(block: suspend () -> T): T? =
