@@ -214,12 +214,10 @@ private fun addFavoriteArtists(
     text: StringBuilder,
     listArtists: List<TopArtist>,
 ) {
-    val deserialized = deserialize(logger)
-
     listArtists.forEachIndexed { index, artist ->
         text
             .append(
-                """${index + 1}. <a href="${artist.url}">${artist.name}</a> - ${artist.playcount} ${deserialized.listens}""",
+                """${index + 1}. <a href="${artist.url}">${artist.name}</a> - ${artist.playcount} ${deserialize(logger).listens}""",
             ).append("\n")
     }
 }
