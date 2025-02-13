@@ -4,7 +4,7 @@ package dataClasses
 
 import com.google.gson.annotations.SerializedName
 
-data class GetInfoResponse(
+data class InfoResponse(
     val user: User,
 )
 

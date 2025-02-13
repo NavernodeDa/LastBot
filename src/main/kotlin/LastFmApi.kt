@@ -1,6 +1,7 @@
 @file:Suppress("ktlint:standard:no-wildcard-imports")
 
-import dataClasses.GetInfoResponse
+import dataClasses.InfoResponse
+import dataClasses.LovedTracksResponse
 import dataClasses.RecentTracksResponse
 import dataClasses.TopArtistsResponse
 import io.ktor.client.*
@@ -68,13 +69,33 @@ class LastFmApi(
                     }.body()
             }
 
-        suspend fun getInfo(): GetInfoResponse =
+        suspend fun getInfo(): InfoResponse =
             withContext(Dispatchers.IO) {
                 client
                     .get("https://ws.audioscrobbler.com/2.0/") {
                         parameter("method", "user.getInfo")
                         parameter("api_key", apiKey)
                         parameter("user", user)
+                        parameter("format", "json")
+                    }.body()
+            }
+
+        /**
+         *@param limit (Optional) : The number of results to fetch per page. Defaults to 50.
+         *@param page (Optional) : The page number to fetch. Defaults to first page.
+         */
+        suspend fun getLovedTracks(
+            limit: Int? = null,
+            page: Int? = null,
+        ): LovedTracksResponse =
+            withContext(Dispatchers.IO) {
+                client
+                    .get("https://ws.audioscrobbler.com/2.0/") {
+                        parameter("method", "user.getLovedTracks")
+                        parameter("api_key", apiKey)
+                        parameter("user", user)
+                        parameter("limit", limit)
+                        parameter("page", page)
                         parameter("format", "json")
                     }.body()
             }
