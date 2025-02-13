@@ -28,7 +28,7 @@ If you want to change the language for your modifiable message, all you need to 
 ![](https://github.com/user-attachments/assets/199c305b-4003-46ed-aff5-0a6043297fed)
 
 ## Example
-![](https://github.com/user-attachments/assets/13c53e7b-94b5-4f1f-b58d-b94801465573)
+![](https://github.com/user-attachments/assets/4c90dc35-d52d-45c2-b773-7a2f1c7ce61f)
 
 ## Usage
 - ![](https://avatars.githubusercontent.com/u/57418018?s=24) [Kotlin-telegram-bot](https://github.com/kotlin-telegram-bot/kotlin-telegram-bot) for Telegram API.
