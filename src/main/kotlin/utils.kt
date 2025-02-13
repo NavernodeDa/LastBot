@@ -147,12 +147,13 @@ private suspend fun updateMessage(userId: Long? = null) {
 private suspend fun buildText(): String {
     val deserialized = deserialize(logger)
     val text = StringBuilder()
-    val recentTracks = getRecentSongs()?.ifEmpty { null }
+    var recentTracks = getRecentSongs()?.ifEmpty { null }
     val favoriteArtists = getFavoriteArtists()?.ifEmpty { null }
 
-    if (recentTracks?.size != config[Data.limitForTracks]) {
+    if ((recentTracks != null) and (recentTracks?.size != config[Data.limitForTracks])) {
         text.append("${deserialized.nowPlaying}\n")
-        addNowPlaying(text, recentTracks?.get(0))
+        addNowPlaying(text, recentTracks!![0])
+        recentTracks = recentTracks.drop(1)
     }
 
     text.append("\n${deserialized.pastSongs}\n")
@@ -179,14 +180,16 @@ private suspend fun buildText(): String {
 private fun addNowPlaying(
     text: StringBuilder,
     track: Track?,
-) {
+): Boolean =
     if (track != null) {
         text
             .append(
                 """${track.artist.text} - <a href="${track.url}">${track.name}</a>""",
-            ).append("\n\n")
+            ).append("\n")
+        true
+    } else {
+        false
     }
-}
 
 private fun addRecentTracks(
     text: StringBuilder,
