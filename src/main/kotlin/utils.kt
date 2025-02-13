@@ -15,10 +15,7 @@ import dataClasses.TopArtist
 import dataClasses.Track
 import io.ktor.client.*
 import io.ktor.client.plugins.*
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.*
 import org.slf4j.Logger
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
@@ -153,38 +150,39 @@ private fun updateMessage(
     }
 }
 
-private suspend fun buildText(): String {
-    val deserialized = deserialize(logger)
-    val text = StringBuilder()
-    var recentTracks = getRecentSongs()?.ifEmpty { null }
-    val favoriteArtists = getFavoriteArtists()?.ifEmpty { null }
+private suspend fun buildText(): String =
+    coroutineScope {
+        val deserialized = deserialize(logger)
+        val text = StringBuilder()
+        var recentTracks = async { getRecentSongs() }.await()?.ifEmpty { null }
+        val favoriteArtists = async { getFavoriteArtists() }.await()?.ifEmpty { null }
 
-    if ((recentTracks != null) and (recentTracks?.size != config[Data.limitForTracks])) {
-        text.append("${deserialized.nowPlaying}\n")
-        addNowPlaying(text, recentTracks!![0])
-        recentTracks = recentTracks.drop(1)
+        if ((recentTracks != null) and (recentTracks?.size != config[Data.limitForTracks])) {
+            text.append("${deserialized.nowPlaying}\n")
+            addNowPlaying(text, recentTracks!![0])
+            recentTracks = recentTracks.drop(1)
+        }
+
+        text.append("\n${deserialized.pastSongs}\n")
+        recentTracks?.let {
+            addRecentTracks(text, it)
+        } ?: run {
+            logger.warn("Result of getRecentSongs() is empty")
+            text.append(deserialized.thereIsNothingHere)
+        }
+
+        text.append("\n${deserialized.favoriteArtists}\n")
+        favoriteArtists?.let {
+            addFavoriteArtists(text, favoriteArtists)
+        } ?: run {
+            logger.warn("Result of getFavoriteArtists() is empty")
+            text.append(deserialized.thereIsNothingHere)
+        }
+
+        return@coroutineScope text
+            .toString()
+            .replace("&", "&amp;")
     }
-
-    text.append("\n${deserialized.pastSongs}\n")
-    recentTracks?.let {
-        addRecentTracks(text, it)
-    } ?: run {
-        logger.warn("Result of getRecentSongs() is empty")
-        text.append(deserialized.thereIsNothingHere)
-    }
-
-    text.append("\n${deserialized.favoriteArtists}\n")
-    favoriteArtists?.let {
-        addFavoriteArtists(text, favoriteArtists)
-    } ?: run {
-        logger.warn("Result of getFavoriteArtists() is empty")
-        text.append(deserialized.thereIsNothingHere)
-    }
-
-    return text
-        .toString()
-        .replace("&", "&amp;")
-}
 
 private fun addNowPlaying(
     text: StringBuilder,
