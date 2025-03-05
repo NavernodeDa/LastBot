@@ -15,19 +15,18 @@ import dataClasses.TopArtist
 import dataClasses.Track
 import io.ktor.client.*
 import io.ktor.client.plugins.*
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.*
 import org.slf4j.Logger
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import java.util.*
+import java.util.concurrent.ConcurrentHashMap
 
 private lateinit var config: ConfigurationProperties
 private lateinit var logger: Logger
-private lateinit var client: HttpClient
+lateinit var client: HttpClient
 private lateinit var bot: Bot
+private var cache = ConcurrentHashMap<String, String>()
 
 fun startUpdate(
     properties: ConfigurationProperties,
@@ -42,8 +41,12 @@ fun startUpdate(
     fun getTime(): String = LocalDateTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss"))
     CoroutineScope(Dispatchers.Default).launch {
         while (true) {
-            updateMessage()
-            loggerFunc.info("${getTime()} - message is updated")
+            val text = buildText()
+            if (cache["text"] != text) {
+                cache["text"] = text
+                updateMessage(cache["text"]!!)
+                loggerFunc.info("${getTime()} - message is updated")
+            }
             delay(properties[Data.updateInterval] * 60000)
         }
     }
@@ -67,7 +70,7 @@ private fun createBot(tokenBot: String): Bot =
         dispatch {
             command("update") {
                 if (checkNullMessageFrom(message.from)) {
-                    updateMessage(message.from!!.id)
+                    updateMessage(buildText(), message.from!!.id)
                 }
             }
             command("info") {
@@ -101,11 +104,7 @@ private fun checkNullMessageFrom(from: User?) =
 
 private suspend fun infoText(lastFmUser: String? = null): String {
     val user =
-        LastFmApi(client)
-            .getInfo(
-                lastFmUser ?: config[Data.user],
-                config[Data.apiKey],
-            ).user
+        LastFmApi(client, config[Data.apiKey]).User(lastFmUser ?: config[Data.user]).getInfo().user
     val deserialized = deserialize(logger)
     val text =
         """
@@ -127,11 +126,14 @@ private suspend fun infoText(lastFmUser: String? = null): String {
     return text
 }
 
-private suspend fun updateMessage(userId: Long? = null) {
+private fun updateMessage(
+    text: String,
+    userId: Long? = null,
+) {
     bot.editMessageText(
         chatId = ChatId.fromId(config[Data.chatId]),
         messageId = config[Data.messageId],
-        text = buildText(),
+        text = text,
         parseMode = ParseMode.HTML,
         disableWebPagePreview = true,
     )
@@ -144,49 +146,53 @@ private suspend fun updateMessage(userId: Long? = null) {
     }
 }
 
-private suspend fun buildText(): String {
-    val deserialized = deserialize(logger)
-    val text = StringBuilder()
-    val recentTracks = getRecentSongs()?.ifEmpty { null }
-    val favoriteArtists = getFavoriteArtists()?.ifEmpty { null }
+private suspend fun buildText(): String =
+    coroutineScope {
+        val deserialized = deserialize(logger)
+        val text = StringBuilder()
+        var recentTracks = async { getRecentSongs() }.await()?.ifEmpty { null }
+        val favoriteArtists = async { getFavoriteArtists() }.await()?.ifEmpty { null }
 
-    if (recentTracks?.size != config[Data.limitForTracks]) {
-        text.append("${deserialized.nowPlaying}\n")
-        addNowPlaying(text, recentTracks?.get(0))
+        if ((recentTracks != null) and (recentTracks?.size != config[Data.limitForTracks])) {
+            text.append("${deserialized.nowPlaying}\n")
+            addNowPlaying(text, recentTracks!![0])
+            recentTracks = recentTracks.drop(1)
+        }
+
+        text.append("\n${deserialized.pastSongs}\n")
+        recentTracks?.let {
+            addRecentTracks(text, it)
+        } ?: run {
+            logger.warn("Result of getRecentSongs() is empty")
+            text.append(deserialized.thereIsNothingHere)
+        }
+
+        text.append("\n${deserialized.favoriteArtists}\n")
+        favoriteArtists?.let {
+            addFavoriteArtists(text, favoriteArtists)
+        } ?: run {
+            logger.warn("Result of getFavoriteArtists() is empty")
+            text.append(deserialized.thereIsNothingHere)
+        }
+
+        return@coroutineScope text
+            .toString()
+            .replace("&", "&amp;")
     }
-
-    text.append("\n${deserialized.pastSongs}\n")
-    recentTracks?.let {
-        addRecentTracks(text, it)
-    } ?: run {
-        logger.warn("Result of getRecentSongs() is empty")
-        text.append(deserialized.thereIsNothingHere)
-    }
-
-    text.append("\n${deserialized.favoriteArtists}\n")
-    favoriteArtists?.let {
-        addFavoriteArtists(text, favoriteArtists)
-    } ?: run {
-        logger.warn("Result of getFavoriteArtists() is empty")
-        text.append(deserialized.thereIsNothingHere)
-    }
-
-    return text
-        .toString()
-        .replace("&", "&amp;")
-}
 
 private fun addNowPlaying(
     text: StringBuilder,
     track: Track?,
-) {
+): Boolean =
     if (track != null) {
         text
             .append(
                 """${track.artist.text} - <a href="${track.url}">${track.name}</a>""",
-            ).append("\n\n")
+            ).append("\n")
+        true
+    } else {
+        false
     }
-}
 
 private fun addRecentTracks(
     text: StringBuilder,
@@ -204,12 +210,10 @@ private fun addFavoriteArtists(
     text: StringBuilder,
     listArtists: List<TopArtist>,
 ) {
-    val deserialized = deserialize(logger)
-
     listArtists.forEachIndexed { index, artist ->
         text
             .append(
-                """${index + 1}. <a href="${artist.url}">${artist.name}</a> - ${artist.playcount} ${deserialized.listens}""",
+                """${index + 1}. <a href="${artist.url}">${artist.name}</a> - ${artist.playcount} ${deserialize(logger).listens}""",
             ).append("\n")
     }
 }
@@ -218,14 +222,21 @@ private suspend fun getFavoriteArtists(): List<TopArtist>? =
     safeApiCall {
         val user = config[Data.user]
         val apiKey = config[Data.apiKey]
-        LastFmApi(client).getTopArtists(user, apiKey, limit = config[Data.limitForArtists])?.topartists?.artist
+        LastFmApi(client, apiKey)
+            .User(user)
+            .getTopArtists(limit = config[Data.limitForArtists])
+            ?.topartists
+            ?.artist
     }
 
 private suspend fun getRecentSongs(): List<Track>? =
     safeApiCall {
         val user = config[Data.user]
         val apiKey = config[Data.apiKey]
-        LastFmApi(client).getRecentTracks(user, apiKey, limit = config[Data.limitForTracks]).recenttracks.track
+        LastFmApi(client, apiKey)
+            .User(user)
+            .getRecentTracks(limit = config[Data.limitForTracks])
+            .recenttracks.track
     }
 
 private suspend fun <T> safeApiCall(block: suspend () -> T): T? =

@@ -1,6 +1,7 @@
 @file:Suppress("ktlint:standard:no-wildcard-imports")
 
-import dataClasses.GetInfoResponse
+import dataClasses.InfoResponse
+import dataClasses.LovedTracksResponse
 import dataClasses.RecentTracksResponse
 import dataClasses.TopArtistsResponse
 import io.ktor.client.*
@@ -10,83 +11,93 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
 class LastFmApi(
-    private val client: HttpClient,
+    val client: HttpClient,
+    val apiKey: String,
 ) {
-    /**
-     * @param user (Required) : The username to fetch top artists for.
-     * @param period (Optional) : overall | 7day | 1month | 3month | 6month | 12month - The time period over which to retrieve top artists for.
-     * @param limit (Optional) : The number of results to fetch per page. Defaults to 50.
-     * @param page (Optional) : The page number to fetch. Defaults to first page.
-     * @param apiKey (Required) : A Last.fm API key.
-     */
-    suspend fun getTopArtists(
-        user: String,
-        apiKey: String,
-        period: String? = null,
-        limit: Int? = null,
-        page: Int? = null,
-    ): TopArtistsResponse? =
-        withContext(Dispatchers.IO) {
-            client
-                .get("https://ws.audioscrobbler.com/2.0/") {
-                    parameter("method", "user.getTopArtists")
-                    parameter("api_key", apiKey)
-                    parameter("user", user)
-                    parameter("limit", limit)
-                    parameter("period", period)
-                    parameter("page", page)
-                    parameter("format", "json")
-                }.body()
-        }
+    inner class User(
+        private val user: String,
+    ) {
+        /**
+         * @param period (Optional) : overall | 7day | 1month | 3month | 6month | 12month - The time period over which to retrieve top artists for.
+         * @param limit (Optional) : The number of results to fetch per page. Defaults to 50.
+         * @param page (Optional) : The page number to fetch. Defaults to first page.
+         */
+        suspend fun getTopArtists(
+            period: String? = null,
+            limit: Int? = null,
+            page: Int? = null,
+        ): TopArtistsResponse? =
+            withContext(Dispatchers.IO) {
+                client
+                    .get("https://ws.audioscrobbler.com/2.0/") {
+                        parameter("method", "user.getTopArtists")
+                        parameter("api_key", apiKey)
+                        parameter("user", user)
+                        parameter("limit", limit)
+                        parameter("period", period)
+                        parameter("page", page)
+                        parameter("format", "json")
+                    }.body()
+            }
 
-    /**
-     * @param limit (Optional) : The number of results to fetch per page. Defaults to 50. Maximum is 200.
-     * @param user (Required) : The last.fm username to fetch the recent tracks of.
-     * @param page (Optional) : The page number to fetch. Defaults to first page.
-     * @param from (Optional) : Beginning timestamp of a range - only display scrobbles after this time, in UNIX timestamp format (integer number of seconds since 00:00:00, January 1st 1970 UTC). This must be in the UTC time zone.
-     * @param extended (0|1) (Optional) : Includes extended data in each artist, and whether the user has loved each track
-     * @param to (Optional) : End timestamp of a range - only display scrobbles before this time, in UNIX timestamp format (integer number of seconds since 00:00:00, January 1st 1970 UTC). This must be in the UTC time zone.
-     * @param apiKey (Required) : A Last.fm API key.
-     */
-    suspend fun getRecentTracks(
-        user: String,
-        apiKey: String,
-        limit: Int? = null,
-        page: Int? = null,
-        from: Long? = null,
-        extended: Int? = null,
-        to: Long? = null,
-    ): RecentTracksResponse =
-        withContext(Dispatchers.IO) {
-            client
-                .get("https://ws.audioscrobbler.com/2.0/") {
-                    parameter("method", "user.getRecentTracks")
-                    parameter("api_key", apiKey)
-                    parameter("user", user)
-                    parameter("limit", limit)
-                    parameter("page", page)
-                    parameter("from", from)
-                    parameter("extended", extended)
-                    parameter("to", to)
-                    parameter("format", "json")
-                }.body()
-        }
+        /**
+         * @param limit (Optional) : The number of results to fetch per page. Defaults to 50. Maximum is 200.
+         * @param page (Optional) : The page number to fetch. Defaults to first page.
+         * @param from (Optional) : Beginning timestamp of a range - only display scrobbles after this time, in UNIX timestamp format (integer number of seconds since 00:00:00, January 1st 1970 UTC). This must be in the UTC time zone.
+         * @param extended (0|1) (Optional) : Includes extended data in each artist, and whether the user has loved each track
+         * @param to (Optional) : End timestamp of a range - only display scrobbles before this time, in UNIX timestamp format (integer number of seconds since 00:00:00, January 1st 1970 UTC). This must be in the UTC time zone.
+         */
+        suspend fun getRecentTracks(
+            limit: Int? = null,
+            page: Int? = null,
+            from: Long? = null,
+            extended: Int? = null,
+            to: Long? = null,
+        ): RecentTracksResponse =
+            withContext(Dispatchers.IO) {
+                client
+                    .get("https://ws.audioscrobbler.com/2.0/") {
+                        parameter("method", "user.getRecentTracks")
+                        parameter("api_key", apiKey)
+                        parameter("user", user)
+                        parameter("limit", limit)
+                        parameter("page", page)
+                        parameter("from", from)
+                        parameter("extended", extended)
+                        parameter("to", to)
+                        parameter("format", "json")
+                    }.body()
+            }
 
-    /**
-     *@param user (Optional) : The user to fetch info for. Defaults to the authenticated user.
-     *@param apiKey (Required) : A Last.fm API key.
-     */
-    suspend fun getInfo(
-        user: String,
-        apiKey: String,
-    ): GetInfoResponse =
-        withContext(Dispatchers.IO) {
-            client
-                .get("https://ws.audioscrobbler.com/2.0/") {
-                    parameter("method", "user.getInfo")
-                    parameter("api_key", apiKey)
-                    parameter("user", user)
-                    parameter("format", "json")
-                }.body()
-        }
+        suspend fun getInfo(): InfoResponse =
+            withContext(Dispatchers.IO) {
+                client
+                    .get("https://ws.audioscrobbler.com/2.0/") {
+                        parameter("method", "user.getInfo")
+                        parameter("api_key", apiKey)
+                        parameter("user", user)
+                        parameter("format", "json")
+                    }.body()
+            }
+
+        /**
+         *@param limit (Optional) : The number of results to fetch per page. Defaults to 50.
+         *@param page (Optional) : The page number to fetch. Defaults to first page.
+         */
+        suspend fun getLovedTracks(
+            limit: Int? = null,
+            page: Int? = null,
+        ): LovedTracksResponse =
+            withContext(Dispatchers.IO) {
+                client
+                    .get("https://ws.audioscrobbler.com/2.0/") {
+                        parameter("method", "user.getLovedTracks")
+                        parameter("api_key", apiKey)
+                        parameter("user", user)
+                        parameter("limit", limit)
+                        parameter("page", page)
+                        parameter("format", "json")
+                    }.body()
+            }
+    }
 }
