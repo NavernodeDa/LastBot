@@ -1,4 +1,4 @@
-@file:Suppress("ktlint:standard:filename", "ktlint:standard:no-wildcard-imports")
+@file:Suppress("ktlint:standard:filename")
 
 import com.github.kotlintelegrambot.Bot
 import com.github.kotlintelegrambot.bot
@@ -13,13 +13,13 @@ import dataClasses.Data
 import dataClasses.Strings
 import dataClasses.TopArtist
 import dataClasses.Track
-import io.ktor.client.*
+import io.ktor.client.HttpClient
 import io.ktor.client.plugins.*
 import kotlinx.coroutines.*
 import org.slf4j.Logger
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
-import java.util.*
+import java.util.Date
 import java.util.concurrent.ConcurrentHashMap
 
 private lateinit var config: ConfigurationProperties
