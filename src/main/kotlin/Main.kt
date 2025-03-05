@@ -8,6 +8,7 @@ import io.ktor.client.plugins.*
 import io.ktor.client.plugins.contentnegotiation.*
 import io.ktor.serialization.gson.*
 import kotlinx.coroutines.async
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import org.slf4j.LoggerFactory
 
@@ -15,23 +16,18 @@ fun main(): Unit =
     runBlocking {
         val config = ConfigurationProperties.fromResource("config.properties")
         val logger = LoggerFactory.getLogger("SpotifyBotLogger")
-        try {
-            val n =
-                async {
-                    startUpdate(
-                        config,
-                        logger,
-                        HttpClient(CIO) {
-                            install(ContentNegotiation) {
-                                gson()
-                            }
-                            install(UserAgent) {
-                                config[Data.userAgent]
-                            }
-                        },
-                    )
-                }
-        } catch (e: Exception) {
-            logger.error("An error occurred: ", e)
+        launch {
+            startUpdate(
+                config,
+                logger,
+                HttpClient(CIO) {
+                    install(ContentNegotiation) {
+                        gson()
+                    }
+                    install(UserAgent) {
+                        config[Data.userAgent]
+                    }
+                },
+            )
         }
     }

@@ -8,7 +8,7 @@ plugins {
 }
 
 group = "dev.kumchatka"
-version = "4.1.0"
+version = "4.1.1"
 
 repositories {
     mavenCentral()
@@ -21,8 +21,10 @@ dependencies {
     implementation("de.u-mass:lastfm-java:0.1.2")
 
     implementation("io.ktor:ktor-client-core:2.3.13")
-    implementation("com.squareup.okio:okio:3.4.0")
     implementation("io.ktor:ktor-client-cio:2.3.0")
+    implementation("com.squareup.okhttp3:okhttp:4.9.2")
+    implementation("com.squareup.okio:okio:3.4.0")
+    implementation("io.ktor:ktor-network-tls-jvm:2.3.5")
     implementation("io.ktor:ktor-client-content-negotiation:2.3.0")
     implementation("io.ktor:ktor-serialization-gson:2.3.0")
 
