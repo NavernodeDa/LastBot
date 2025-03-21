@@ -13,13 +13,12 @@ import dataClasses.Data
 import dataClasses.Strings
 import dataClasses.TopArtist
 import dataClasses.Track
-import io.ktor.client.HttpClient
+import io.ktor.client.*
 import io.ktor.client.plugins.*
 import kotlinx.coroutines.*
 import org.slf4j.Logger
-import java.time.LocalDateTime
-import java.time.format.DateTimeFormatter
-import java.util.Date
+import java.text.SimpleDateFormat
+import java.util.*
 import java.util.concurrent.ConcurrentHashMap
 
 private lateinit var config: ConfigurationProperties
@@ -38,7 +37,7 @@ fun startUpdate(
     client = httpClient
     bot = createBot(properties[Data.tokenBot])
 
-    fun getTime(): String = LocalDateTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss"))
+    fun getTime() = SimpleDateFormat("HH:mm:ss").format(Date().time)
     CoroutineScope(Dispatchers.Default).launch {
         while (true) {
             val text = buildText()
