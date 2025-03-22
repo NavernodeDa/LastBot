@@ -1,3 +1,11 @@
+@file:Suppress("ktlint:standard:no-wildcard-imports")
+
+import com.github.kotlintelegrambot.bot
+import com.github.kotlintelegrambot.dispatch
+import com.github.kotlintelegrambot.dispatcher.command
+import com.github.kotlintelegrambot.entities.ChatId
+import com.github.kotlintelegrambot.entities.ParseMode
+import com.github.kotlintelegrambot.logging.LogLevel
 import com.natpryce.konfig.ConfigurationProperties
 import dataClasses.Data
 import io.ktor.client.HttpClient
@@ -5,16 +13,52 @@ import io.ktor.client.engine.cio.CIO
 import io.ktor.client.plugins.UserAgent
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.serialization.gson.gson
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.*
 import org.slf4j.LoggerFactory
+import java.text.SimpleDateFormat
+import java.util.*
 
 fun main(): Unit =
     runBlocking {
         val config = ConfigurationProperties.fromResource("config.properties")
         val logger = LoggerFactory.getLogger("SpotifyBotLogger")
         launch {
-            startUpdate(
+            val bot =
+                bot {
+                    token = config[Data.tokenBot]
+                    logLevel = LogLevel.Error
+                    dispatch {
+                        fun warnUserIsNull() = logger.warn("message.from is null")
+                        command("update") {
+                            message.from?.let { user ->
+                                updateMessage(buildText(), user.id)
+                            } ?: run {
+                                warnUserIsNull()
+                            }
+                        }
+                        command("info") {
+                            message.from?.let {
+                                val messageSplit = message.text!!.split(" ")
+                                if (messageSplit.size >= 2) {
+                                    bot.sendMessage(
+                                        ChatId.fromId(message.from!!.id),
+                                        infoText(messageSplit[1]),
+                                        parseMode = ParseMode.HTML,
+                                    )
+                                } else {
+                                    bot.sendMessage(
+                                        ChatId.fromId(message.from!!.id),
+                                        infoText(),
+                                        parseMode = ParseMode.HTML,
+                                    )
+                                }
+                            } ?: run {
+                                warnUserIsNull()
+                            }
+                        }
+                    }
+                }
+            setValues(
                 config,
                 logger,
                 HttpClient(CIO) {
@@ -25,6 +69,23 @@ fun main(): Unit =
                         config[Data.userAgent]
                     }
                 },
+                bot,
             )
+
+            fun getTime() = SimpleDateFormat("HH:mm:ss").format(Date().time)
+            CoroutineScope(Dispatchers.Default + SupervisorJob()).launch {
+                while (true) {
+                    val text = buildText()
+                    if (cache != text) {
+                        cache = text
+                        updateMessage(cache ?: text)
+                        logger.info("${getTime()} - message is updated")
+                    }
+                    delay(config[Data.updateInterval] * 60000)
+                }
+            }
+
+            bot.startPolling()
+            logger.info("Bot is started")
         }
     }

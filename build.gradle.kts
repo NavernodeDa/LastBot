@@ -8,7 +8,7 @@ plugins {
 }
 
 group = "dev.kumchatka"
-version = "4.3.0"
+version = "5.0.0"
 
 repositories {
     mavenCentral()
@@ -16,9 +16,10 @@ repositories {
 }
 
 dependencies {
-    implementation("io.github.kotlin-telegram-bot.kotlin-telegram-bot:telegram:6.1.0")
+    testImplementation(kotlin("test"))
+    // testImplementation("io.mockk:mockk:1.13.17")
 
-    implementation("de.u-mass:lastfm-java:0.1.2")
+    implementation("io.github.kotlin-telegram-bot.kotlin-telegram-bot:telegram:6.3.0")
 
     implementation("io.ktor:ktor-client-core:2.3.13")
     implementation("io.ktor:ktor-client-cio:2.3.0")

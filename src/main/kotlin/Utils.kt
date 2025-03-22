@@ -1,13 +1,8 @@
-@file:Suppress("ktlint:standard:filename")
+@file:Suppress("ktlint:standard:no-wildcard-imports")
 
 import com.github.kotlintelegrambot.Bot
-import com.github.kotlintelegrambot.bot
-import com.github.kotlintelegrambot.dispatch
-import com.github.kotlintelegrambot.dispatcher.command
 import com.github.kotlintelegrambot.entities.ChatId
 import com.github.kotlintelegrambot.entities.ParseMode
-import com.github.kotlintelegrambot.entities.User
-import com.github.kotlintelegrambot.logging.LogLevel
 import com.natpryce.konfig.ConfigurationProperties
 import dataClasses.Data
 import dataClasses.Strings
@@ -15,43 +10,28 @@ import dataClasses.TopArtist
 import dataClasses.Track
 import io.ktor.client.*
 import io.ktor.client.plugins.*
-import kotlinx.coroutines.*
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import org.slf4j.Logger
-import java.text.SimpleDateFormat
 import java.util.*
-import java.util.concurrent.ConcurrentHashMap
 
 private lateinit var config: ConfigurationProperties
 private lateinit var logger: Logger
 lateinit var client: HttpClient
 private lateinit var bot: Bot
-private var cache = ConcurrentHashMap<String, String>()
 
-fun startUpdate(
+var cache = Cache<String>()[CacheKey.SUMMARY_TEXT]
+
+fun setValues(
     properties: ConfigurationProperties,
     loggerFunc: Logger,
     httpClient: HttpClient,
+    botTelegram: Bot,
 ) {
     config = properties
     logger = loggerFunc
     client = httpClient
-    bot = createBot(properties[Data.tokenBot])
-
-    fun getTime() = SimpleDateFormat("HH:mm:ss").format(Date().time)
-    CoroutineScope(Dispatchers.Default).launch {
-        while (true) {
-            val text = buildText()
-            if (cache["text"] != text) {
-                cache["text"] = text
-                updateMessage(cache["text"]!!)
-                loggerFunc.info("${getTime()} - message is updated")
-            }
-            delay(properties[Data.updateInterval] * 60000)
-        }
-    }
-
-    bot.startPolling()
-    loggerFunc.info("Bot is started")
+    bot = botTelegram
 }
 
 private fun deserialize(logger: Logger): Strings =
@@ -62,46 +42,7 @@ private fun deserialize(logger: Logger): Strings =
         throw e
     }
 
-private fun createBot(tokenBot: String): Bot =
-    bot {
-        token = tokenBot
-        logLevel = LogLevel.Error
-        dispatch {
-            command("update") {
-                if (checkNullMessageFrom(message.from)) {
-                    updateMessage(buildText(), message.from!!.id)
-                }
-            }
-            command("info") {
-                if (checkNullMessageFrom(message.from)) {
-                    val messageSplit = message.text!!.split(" ")
-                    if (messageSplit.size >= 2) {
-                        bot.sendMessage(
-                            ChatId.fromId(message.from!!.id),
-                            infoText(messageSplit[1]),
-                            parseMode = ParseMode.HTML,
-                        )
-                    } else {
-                        bot.sendMessage(
-                            ChatId.fromId(message.from!!.id),
-                            infoText(),
-                            parseMode = ParseMode.HTML,
-                        )
-                    }
-                }
-            }
-        }
-    }
-
-private fun checkNullMessageFrom(from: User?) =
-    if (from == null) {
-        logger.warn("message.from is null")
-        false
-    } else {
-        true
-    }
-
-private suspend fun infoText(lastFmUser: String? = null): String {
+suspend fun infoText(lastFmUser: String? = null): String {
     val user =
         LastFmApi(client, config[Data.apiKey]).User(lastFmUser ?: config[Data.user]).getInfo().user
     val deserialized = deserialize(logger)
@@ -125,7 +66,7 @@ private suspend fun infoText(lastFmUser: String? = null): String {
     return text
 }
 
-private fun updateMessage(
+fun updateMessage(
     text: String,
     userId: Long? = null,
 ) {
@@ -145,16 +86,20 @@ private fun updateMessage(
     }
 }
 
-private suspend fun buildText(): String =
+suspend fun buildText(): String =
     coroutineScope {
         val deserialized = deserialize(logger)
         val text = StringBuilder()
-        var recentTracks = async { getRecentSongs() }.await()?.ifEmpty { null }
-        val favoriteArtists = async { getFavoriteArtists() }.await()?.ifEmpty { null }
 
-        if ((recentTracks != null) and (recentTracks?.size != config[Data.limitForTracks])) {
+        val recentTracksDeferred = async { getRecentSongs() }
+        val favoriteArtistsDeferred = async { getFavoriteArtists() }
+
+        var recentTracks = recentTracksDeferred.await()?.ifEmpty { null }
+        val favoriteArtists = favoriteArtistsDeferred.await()?.ifEmpty { null }
+
+        if ((recentTracks != null) && (recentTracks.size != config[Data.limitForTracks])) {
             text.append("${deserialized.nowPlaying}\n")
-            addNowPlaying(text, recentTracks!![0])
+            addNowPlaying(text, recentTracks[0])
             recentTracks = recentTracks.drop(1)
         }
 
@@ -168,7 +113,7 @@ private suspend fun buildText(): String =
 
         text.append("\n${deserialized.favoriteArtists}\n")
         favoriteArtists?.let {
-            addFavoriteArtists(text, favoriteArtists)
+            addFavoriteArtists(text, it)
         } ?: run {
             logger.warn("Result of getFavoriteArtists() is empty")
             text.append(deserialized.thereIsNothingHere)
