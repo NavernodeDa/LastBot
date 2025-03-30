@@ -21,13 +21,18 @@ The ```chatId``` and  ```messageId``` fields are filled in together: the id of y
 
 ### ❗️Before you run the bot, add it to your chat/channel and give it admin if you add it to the  channel ❗️
 
+If you are using Linux, you just need to run the ```startMusicBot.sh``` file (you can even move it to another location if you pass the directory with the gradlew file as an argument). Otherwise, you just need to type "gradlew run" while in the directory with the bot in your shell. Enjoy it!
+
 ## Changing the language for the message
 
 If you want to change the language for your modifiable message, all you need to do is change the name of your file in the `utils.kt` file in the `deserialize()` function. You can also change string values in the file itself (including smiles).
 
+TODO: Make a choice of message language via arguments
+
+
 ![](https://github.com/user-attachments/assets/199c305b-4003-46ed-aff5-0a6043297fed)
 
-## Example
+## Example with english language
 ![](https://github.com/user-attachments/assets/4c90dc35-d52d-45c2-b773-7a2f1c7ce61f)
 
 ## Usage

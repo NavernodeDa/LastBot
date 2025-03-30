@@ -42,6 +42,10 @@ tasks.test {
     useJUnitPlatform()
 }
 
+tasks.run {
+    println("[gradle] Version code: ${project.version}")
+}
+
 kotlin {
     compilerOptions {
         jvmTarget.set(JvmTarget.JVM_21)
