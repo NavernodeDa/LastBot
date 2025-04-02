@@ -25,12 +25,10 @@ If you are using Linux, you just need to run the ```startMusicBot.sh``` file (yo
 
 ## Changing the language for the message
 
-If you want to change the language for your modifiable message, all you need to do is change the name of your file in the `utils.kt` file in the `deserialize()` function. You can also change string values in the file itself (including smiles).
+To change the language, you can specify the language as an argument to --language when running the bot via .sh script. The list of currently available languages: English (default), Russian, Ukrainian.
 
-TODO: Make a choice of message language via arguments
-
-
-![](https://github.com/user-attachments/assets/199c305b-4003-46ed-aff5-0a6043297fed)
+### Custom localization
+You can also create your own localization. To do this, change the string values from the ```strings_en.json``` file to your own and the resulting file "strings_[your_language].json". For example, "strings_Chinese.json" and pass your language to the script: "-l Chinese"
 
 ## Example with english language
 ![](https://github.com/user-attachments/assets/4c90dc35-d52d-45c2-b773-7a2f1c7ce61f)

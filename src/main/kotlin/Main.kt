@@ -18,10 +18,26 @@ import org.slf4j.LoggerFactory
 import java.text.SimpleDateFormat
 import java.util.*
 
-fun main(): Unit =
+fun main(args: Array<String>): Unit =
     runBlocking {
         val config = ConfigurationProperties.fromResource("config.properties")
         val logger = LoggerFactory.getLogger("SpotifyBotLogger")
+        val httpClient =
+            HttpClient(CIO) {
+                install(ContentNegotiation) {
+                    gson()
+                }
+                install(UserAgent) {
+                    config[Data.userAgent]
+                }
+            }
+        val stringFile =
+            when (args.first().lowercase()) {
+                "russian" -> "strings_ru"
+                "ukrainian" -> "strings_ua"
+                "english" -> "strings_en"
+                else -> "strings_${args.first().lowercase()}"
+            } + ".json"
         launch {
             val bot =
                 bot {
@@ -61,15 +77,9 @@ fun main(): Unit =
             setValues(
                 config,
                 logger,
-                HttpClient(CIO) {
-                    install(ContentNegotiation) {
-                        gson()
-                    }
-                    install(UserAgent) {
-                        config[Data.userAgent]
-                    }
-                },
+                httpClient,
                 bot,
+                stringFile,
             )
 
             fun getTime() = SimpleDateFormat("HH:mm:ss").format(Date().time)

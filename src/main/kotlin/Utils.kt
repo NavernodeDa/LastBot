@@ -19,6 +19,7 @@ private lateinit var config: ConfigurationProperties
 private lateinit var logger: Logger
 lateinit var client: HttpClient
 private lateinit var bot: Bot
+private lateinit var stringFile: String
 
 var cache = Cache<String>()[CacheKey.SUMMARY_TEXT]
 
@@ -27,16 +28,18 @@ fun setValues(
     loggerFunc: Logger,
     httpClient: HttpClient,
     botTelegram: Bot,
+    languageFile: String,
 ) {
     config = properties
     logger = loggerFunc
     client = httpClient
     bot = botTelegram
+    stringFile = languageFile
 }
 
 private fun deserialize(logger: Logger): Strings =
     try {
-        Deserialized(logger).getDeserialized("strings_ru.json")!!
+        Deserialized(logger).getDeserialized(stringFile)!!
     } catch (e: Exception) {
         logger.error(e.toString())
         throw e
