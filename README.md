@@ -31,7 +31,7 @@ To change the language, you can specify the language as an argument to --languag
 You can also create your own localization. To do this, change the string values from the ```strings_en.json``` file to your own and the resulting file "strings_[your_language].json". For example, "strings_Chinese.json" and pass your language to the script: "-l Chinese"
 
 ## Example with english language
-![](https://github.com/user-attachments/assets/4c90dc35-d52d-45c2-b773-7a2f1c7ce61f)
+![](https://github.com/user-attachments/assets/b5bbd23f-9289-4da8-ba4a-b45f87ebd5dc)
 
 ## Usage
 - ![](https://avatars.githubusercontent.com/u/57418018?s=24) [Kotlin-telegram-bot](https://github.com/kotlin-telegram-bot/kotlin-telegram-bot) for Telegram API.
