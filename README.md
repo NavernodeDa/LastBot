@@ -1,4 +1,4 @@
-# MusicProfileBot
+# LastBot
 [![ktlint](https://img.shields.io/badge/code%20style-%E2%9D%A4-FF4081.svg)](https://ktlint.github.io/)
 
 Kotlin-based Telegram bot for tracking and updating information about user's music preferences based on Last.fm data. The bot periodically checks the user's top artists and sends updates to the specified Telegram channel or chat.
